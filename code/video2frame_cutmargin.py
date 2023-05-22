@@ -12,8 +12,8 @@ import PIL
 from PIL import Image
 
 
-source_path = "xxx/Videos/"  # original path
-save_path = "xxx/frame/"  # save path
+source_path = "/mnt/Storage/acmit/Autolaparo/Autolaparo_Task1/videos_1fps/"  # original path
+save_path = "/mnt/Storage/acmit/Autolaparo/Autolaparo_Task1/frame/"  # save path
 
 
 def change_size(image):
@@ -49,7 +49,7 @@ def change_size(image):
     return pre1_picture  
 
 
-Video_num = 0
+Video_num = 14
 
 while True:
 
@@ -58,7 +58,11 @@ while True:
     if not os.path.exists(save_path+str(Video_num)):
         os.mkdir(save_path+str(Video_num)) 
 
-    cap = cv2.VideoCapture(source_path+"Chole"+str(Video_num)+".mp4")
+    str_Video_num = str(Video_num)
+    if Video_num < 10:
+        str_Video_num = "0" + str_Video_num
+
+    cap = cv2.VideoCapture(source_path+str_Video_num+".mp4")
     
     while cap.isOpened():
         ret, frame = cap.read()
@@ -76,9 +80,9 @@ while True:
         print(img_result.shape)
         print(img_result.dtype)
 
-        img_result = cv2.cvtColor(img_result, cv2.COLOR_BGR2RGB)
-        img_result = PIL.Image.fromarray(img_result)
-        print(img_result.mode)
+        #img_result = cv2.cvtColor(img_result, cv2.COLOR_BGR2RGB)
+        #img_result = PIL.Image.fromarray(img_result)
+        #print(img_result.mode)
 
         cv2.imwrite(img_save_path, img_result)
         print(img_save_path) 
@@ -86,7 +90,7 @@ while True:
         cv2.waitKey(1)
 
 
-    if Video_num==1:
+    if Video_num==15:
         break
                 
 

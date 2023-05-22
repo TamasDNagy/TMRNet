@@ -24,9 +24,9 @@ import os
 
 parser = argparse.ArgumentParser(description='lstm training')
 parser.add_argument('-g', '--gpu', default=True, type=bool, help='gpu use, default True')
-parser.add_argument('-s', '--seq', default=10, type=int, help='sequence length, default 10')
-parser.add_argument('-t', '--train', default=400, type=int, help='train batch size, default 400')
-parser.add_argument('-v', '--val', default=320, type=int, help='valid batch size, default 10')
+parser.add_argument('-s', '--seq', default=32, type=int, help='sequence length, default 10')
+parser.add_argument('-t', '--train', default=32, type=int, help='train batch size, default 400')
+parser.add_argument('-v', '--val', default=32, type=int, help='valid batch size, default 10')
 parser.add_argument('-o', '--opt', default=0, type=int, help='0 for sgd 1 for adam, default 1')
 parser.add_argument('-m', '--multi', default=1, type=int, help='0 for single opt, 1 for multi opt, default 1')
 parser.add_argument('-e', '--epo', default=25, type=int, help='epochs to train and val, default 25')
@@ -66,6 +66,7 @@ sgd_gamma = args.sgdgamma
 
 num_gpu = torch.cuda.device_count()
 use_gpu = (torch.cuda.is_available() and gpu_usg)
+#use_gpu = False
 device = torch.device("cuda:0" if use_gpu else "cpu")
 
 print('number of gpu   : {:6d}'.format(num_gpu))
@@ -251,7 +252,7 @@ def get_data(data_path):
     print('valid_paths_19  : {:6d}'.format(len(val_paths_80)))
     print('valid_labels_19 : {:6d}'.format(len(val_labels_80)))
 
-    train_labels_19 = np.asarray(train_labels_19, dtype=np.int64)
+    #train_labels_19 = np.asarray(train_labels_19, dtype=np.int64)
     train_labels_80 = np.asarray(train_labels_80, dtype=np.int64)
     val_labels_80 = np.asarray(val_labels_80, dtype=np.int64)
 
@@ -448,12 +449,12 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                 exp_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
         elif optimizer_choice == 1:
             optimizer = optim.Adam([
-                {'params': model.module.share.parameters()},
-                {'params': model.module.lstm.parameters(), 'lr': learning_rate},
-                {'params': model.module.fc.parameters(), 'lr': learning_rate},
+                {'params': model.share.parameters()},
+                {'params': model.lstm.parameters(), 'lr': learning_rate},
+                {'params': model.fc.parameters(), 'lr': learning_rate},
             ], lr=learning_rate / 10)
 
-    best_model_wts = copy.deepcopy(model.module.state_dict())
+    best_model_wts = copy.deepcopy(model.state_dict())
     best_val_accuracy_phase = 0.0
     correspond_train_acc_phase = 0.0
     best_epoch = 0
@@ -599,7 +600,7 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
         val_recall_phase = metrics.recall_score(val_all_labels_phase,val_all_preds_phase, average='macro')
         val_precision_phase = metrics.precision_score(val_all_labels_phase,val_all_preds_phase, average='macro')
-        val_jaccard_phase = metrics.jaccard_similarity_score(val_all_labels_phase,val_all_preds_phase)
+        val_jaccard_phase = metrics.jaccard_score(val_all_labels_phase,val_all_preds_phase, average='macro')
         val_precision_each_phase = metrics.precision_score(val_all_labels_phase,val_all_preds_phase, average=None)
         val_recall_each_phase = metrics.recall_score(val_all_labels_phase,val_all_preds_phase, average=None)
 
@@ -640,12 +641,12 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
         if val_accuracy_phase > best_val_accuracy_phase:
             best_val_accuracy_phase = val_accuracy_phase
             correspond_train_acc_phase = train_accuracy_phase
-            best_model_wts = copy.deepcopy(model.module.state_dict())
+            best_model_wts = copy.deepcopy(model.state_dict())
             best_epoch = epoch
         if val_accuracy_phase == best_val_accuracy_phase:
             if train_accuracy_phase > correspond_train_acc_phase:
                 correspond_train_acc_phase = train_accuracy_phase
-                best_model_wts = copy.deepcopy(model.module.state_dict())
+                best_model_wts = copy.deepcopy(model.state_dict())
                 best_epoch = epoch
 
         save_val_phase = int("{:4.0f}".format(best_val_accuracy_phase * 10000))
@@ -661,10 +662,16 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                      + "_train_" + str(save_train_phase) \
                      + "_val_" + str(save_val_phase)
 
-        torch.save(best_model_wts, "./best_model/lr5e-4_do/"+base_name+".pth")
+        best_model_save_dir = "./best_model/lr5e-4_do/"+base_name+".pth"
+        if not os.path.isdir(best_model_save_dir):
+            os.makedirs(best_model_save_dir)
+        torch.save(best_model_wts, best_model_save_dir)
         print("best_epoch",str(best_epoch))
 
-        torch.save(model.module.state_dict(), "./temp/lr5e-4_do/latest_model_"+str(epoch)+".pth")
+        dict_save_dir = "./temp/lr5e-4_do/latest_model_"+str(epoch)+".pth"
+        if not os.path.isdir(dict_save_dir):
+            os.makedirs(dict_save_dir)
+        torch.save(model.state_dict(), dict_save_dir)
 
 
 
